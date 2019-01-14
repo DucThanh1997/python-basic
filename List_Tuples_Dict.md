@@ -1,0 +1,85 @@
+# List
+## Tạo
+```
+mylist = []
+mylist = list()
+```
+Có thể nhét nhiều kiểu biến vào trong 1 list thậm chí list,tuple, hay dictionary cũng được
+
+## Các thứ có thể làm trong list
+- Gộp 2 list lại có 2 cách
+```
+Cách 1
+>>> combo_list = []
+>>> one_list = [4, 5]
+>>> combo_list.extend(one_list)
+>>> combo_list
+[4, 5]
+Cách 2
+>>> my_list = [1, 2, 3]
+>>> my_list2 = ["a", "b", "c"]
+>>> combo_list = my_list + my_list2
+>>> combo_list
+[1, 2, 3, 'a', 'b', 'c']
+```
+
+- Sort list
+```
+>>> alpha_list = [34, 23, 67, 100, 88, 2]
+>>> alpha_list.sort()
+>>> alpha_list
+[2, 23, 34, 67, 88, 100]
+```
+
+- Thêm và xóa các phần tử trong list
+```
+Thêm: my_list.append(6)
+- Còn slicing cũng giống như dict thôi
+
+# Tuple
+- Tuple cũng giống như list nhưng có 1 vài điểm khac biệt cơ bản sau
+  + Tuple không thay đổi được các biến trong nó do vậy nó ko dùng method sort,add remove các biến đi được
+  + kí hiệu của nó là () chứ không phải [] như list
+- Tuple chỉ có thể thêm các phần tử mới bằng cách cộng với 1 tuple khác
+- Slicing nó cũng giống như list
+
+# Dictionary
+## Cách tạo 
+```
+>>> my_dict = {}
+>>> another_dict = dict()
+>>> my_other_dict = {"one":1, "two":2, "three":3}
+>>> my_other_dict
+{'three': 3, 'two': 2, 'one': 1}
+```
+### Cách xem các values, key
+```
+>>> my_other_dict["one"]
+1
+>>> my_dict = {"name":"Mike", "address":"123 Happy Way"}
+>>> my_dict["name"]
+'Mike'
+```
+trả về tất cả các key trong dict
+
+`my_dict.keys()`
+
+trả về tất cả các values trong dict
+
+`my_dict.values()`
+ 
+ # Set
+ ## Cách tạo
+ Set (kiểu dữ liệu) là một container giống như list và tuple nhưng không có thứ tự và chỉ số.
+ ```
+ thisset = {"táo", "chuối", "cherry"}
+ print(thisset)
+ thisset.add("đu đủ")
+ thisset.remove("táo")
+ ```
+ 
+ 
+ 
+ 
+ 
+ 
