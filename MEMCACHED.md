@@ -64,15 +64,6 @@ nó sẽ hoàn toàn phụ thuộc vào loại dữ liệu và ứng dụng mà 
 Vô hiệu hóa bộ đệm, bạn cần xóa cache vì nó không đồng bộ với dữ liệu hiện tại, 
 cũng là điều mà ứng dụng của bạn sẽ phải xử lý. Đặc biệt là nếu trình bày dữ liệu đã quá cũ
 
-Here again, there is no magical recipe; it depends on the type of application you are building. 
-However, there are several outlying cases that should be handled—which we haven’t yet covered in the above example.
-
-A caching server cannot grow infinitely—memory is a finite resource. 
-Therefore, keys will be flushed out by the caching server as soon as it needs more space to store other things.
-
-Some keys might also be expired because they reached their expiration time (also sometimes called the “time-to-live” or TTL.) 
-In those cases the data is lost, and the canonical data source must be queried again.
-
 
 Ở đây một lần nữa, không có công thức kỳ diệu nào cả; nó phụ thuộc vào loại ứng dụng bạn đang xây dựng. 
 Tuy nhiên, có một số trường hợp ngoại lệ nên được xử lý mà chúng tôi chưa đề cập đến trong ví dụ trên.
@@ -80,9 +71,97 @@ Tuy nhiên, có một số trường hợp ngoại lệ nên được xử lý m
 Một máy chủ bộ nhớ đệm không thể phát triển vô hạn Bộ nhớ - 1 tài nguyên hữu hạn. 
 Do đó, các key sẽ được xóa bởi caching server ngay khi nó cần thêm dung lượng để lưu trữ những thứ khác.
 
-Một số khóa cũng có thể bị hết hạn vì chúng đã hết thời gian lưu trữ 
-(đôi khi còn được gọi là thời gian sống hay thời gian sống của người Hồi giáo). 
+Một số khóa cũng có thể bị hết hạn vì chúng đã hết thời gian lưu trữ  (đôi khi còn được gọi là thời gian sống). 
 Trong những trường hợp đó, dữ liệu bị mất và nguồn dữ liệu chính tắc phải được truy vấn lại.
+
+Nghe hơi phức tạp nên làm 1 ví dụ nhá Thành =))))
+```
+from pymemcache.client import base
+
+
+def do_some_query():
+    # Replace with actual querying code to a database,
+    # a remote REST API, etc.
+    return 42
+
+
+# Don't forget to run `memcached' before running this code
+client = base.Client(('localhost', 11211))
+result = client.get('some_key')
+
+if result is None:
+    # The cache is empty, need to get the value
+    # from the canonical source:
+    result = do_some_query()
+
+    # Cache the result for next time:
+    client.set('some_key', result)
+
+# Whether we needed to update the cache or not,
+# at this point you can work with the data
+# stored in the `result` variable:
+print(result)
+```
+
+## Warming Up a Cold Cache
+
+Có vài trường hợp vì lí do nào đó bạn biết là memcache sẽ crash vì lí do nào đó bạn không thể biết nhưng cũng có trường hợp bạn biết
+là nó sẽ crash chính vì vậy bạn cần thực hiện 1 cái tôi gọi là di tản và pymemcache có hỗ trợ cái này
+```
+from pymemcache.client import base
+from pymemcache import fallback
+
+
+def do_some_query():
+    code chuẩn
+    return 42
+
+
+# nhớ set `ignore_exc=True` để có thể tắt old cache trước khi xóa đi dung lượng của chương trình 
+old_cache = base.Client(('localhost', 11211), ignore_exc=True)
+new_cache = base.Client(('localhost', 11212))
+
+client = fallback.FallbackClient((new_cache, old_cache))
+
+result = client.get('some_key')
+```
+
+The FallbackClient queries the old cache passed to its constructor, respecting the order. In this case, the new cache server will always be queried first, and in case of a cache miss, the old one will be queried—avoiding a possible return-trip to the primary source of data.
+
+If any key is set, it will only be set to the new cache. After some time, the old cache can be decommissioned and the FallbackClient can be replaced directed with the new_cache client.
+
+FallbackClient truy vấn old cache rồi chuyển đến hàm tạo của nó, tuân theo thứ tự. Trong trường hợp này, cache server mới sẽ luôn được truy vấn trước và trong trường hợp bộ nhớ cache bị lỗi, máy chủ cũ sẽ được truy vấn lại tránh việc quay trở lại nguồn dữ liệu chính.
+
+Nếu bất kỳ khóa nào được đặt, nó sẽ chỉ được đặt thành bộ đệm mới. Sau một thời gian, bộ đệm cũ có thể ngừng hoạt động và FallbackClient có thể được thay thế trực tiếp bằng new_cache client.
+
+## Check and set
+Khi giao tiếp với bộ đệm từ xa, vấn đề tương tranh thông thường sẽ quay trở lại: có thể có một số khách hàng cố gắng truy cập cùng một khóa cùng một lúc. memcached cung cấp một thao tác kiểm tra và thiết lập, rút ngắn thành CAS, giúp giải quyết vấn đề này.
+
+Ví dụ đơn giản nhất là một ứng dụng muốn đếm số lượng người dùng mà nó có. Mỗi khi khách truy cập kết nối, một bộ đếm được tăng thêm 1. Sử dụng memcached, một cách thực hiện đơn giản sẽ là:
+
+```
+def on_visit(client):
+    while True:
+        result, cas = client.gets('visitors')
+        if result is None:
+            result = 1
+        else:
+            result += 1
+        if client.cas('visitors', result, cas):
+            break
+ ```
+
+Phương thức `gets` trả về 1 giá trị, giống như phương thức get, nhưng nó cũng trả về giá trị CAS. Những gì trong giá trị này không liên quan, nhưng nó được sử dụng cho phương thức cas tiếp theo. Phương pháp này tương đương với phương thức set, ngoại trừ việc nó không thành công nếu giá trị gets đã thay đổi kể từ khi từ khi cas được đặt. Trong trường hợp thành công, vòng lặp break. Nếu không, hoạt động được khởi động lại từ đầu.
+
+Trong trường hợp, hai nơi cố gắng cập nhật bộ đếm cùng một lúc, chỉ có một trường hợp thành công để chuyển bộ đếm từ 42 sang 43. Trường hợp thứ hai nhận được giá trị Sai được trả về bởi lệnh gọi client.cas và phải thử lại vòng lặp. Nó sẽ lấy 43 như giá trị lần này, sẽ tăng nó lên 44 và phương thức cas của nó sẽ thành công
+
+
+
+
+
+
+
+
 
 
 
