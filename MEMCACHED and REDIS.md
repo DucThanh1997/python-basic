@@ -157,13 +157,48 @@ Trong trường hợp, hai nơi cố gắng cập nhật bộ đếm cùng một
 
 
 
+# REDIS
+## Định nghĩa
+Redis là một phần mềm mã nguồn mở được dùng để lưu trữ một cách tạm thời trên bộ nhớ (hay còn gọi là cache data) và giúp truy xuất dữ liệu một cách nhanh chóng. Do tốc độ truy xuất dữ liệu vượt trội so với các cơ sở dữ liệu thông thường như MySQL nên redis được sử dụng rất nhiều trong kỹ thuật Caching.
+
+## Cài đặt
+`https://dzone.com/articles/running-redis-on-windows-81-and-prior` 
+Đây nha
+
+## Dùng
+```
+import redis
+
+# bước 1: import redis vào
+# bước 2: thiết lập các thông số để connect đến server
+redis_host = "localhost"
+redis_port = 6379
+redis_password = ""
 
 
+def hello_redis():
+    """Example Hello Redis Program"""
 
+    # step 3: tạo Redis Connection object
+    r = redis.Redis(host='localhost', port=6379, db=0)
 
+    r.set('count', 1)
+    # r.lpush('hispanic', 'thành')
+    print(r.llen('hispanic'))
+    print(r.get('hispanic'))
 
+if __name__ == '__main__':
+    hello_redis()
+```
 
-
+Các kiểu dữ liệu mà redis support
+- Binary-safe strings.
+- Lists
+- Sets
+- Sorted sets
+- Hashes
+- Bit arrays (or simply bitmaps)
+- HyperLogLogs
 
 
 
